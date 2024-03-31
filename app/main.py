@@ -1,5 +1,5 @@
 import socket
-
+from .dnsmessage import DNSMessage
 
 def main():
     # You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -12,11 +12,17 @@ def main():
         try:
             buf, source = udp_socket.recvfrom(512)
     
-            response = b""
-    
-            udp_socket.sendto(response, source)
+            
+            print(buf)
+            # Creating a DNS message and setting header
+            response = DNSMessage()
+            # for now the header is initialized with the values we want
+
+            # Sending response
+            udp_socket.sendto(response.to_bytes(), source)  
+            
         except Exception as e:
-            print(f"Error receiving data: {e}")
+            print(f"Error handling DNS message: {e}")
             break
 
 
