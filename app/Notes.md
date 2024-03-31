@@ -57,6 +57,21 @@ google is the content of the label
 com is the content of the label
 \x00 is the null byte that terminates the domain name
 
+# Answer section structure
+The answer section contains a list of RRs (Resource Records), which are answers to the questions asked in the question section.
+
+Each RR has the following structure:
+| Field	| Type	| Description |
+| -------- | ------- | ------- |
+| Name | Label Sequence | The domain name encoded as a sequence of labels. |
+| Type | 2-byte Integer | 1 for an A record, 5 for a CNAME record etc., full list here |
+| Class | 2-byte Integer | Usually set to 1 (full list here) |
+| TTL (Time-To-Live) | 4-byte Integer | The duration in seconds a record can be cached before  |requerying.
+| Length (RDLENGTH) | 2-byte Integer | Length of the RDATA field in bytes. |
+| Data (RDATA) | Variable | Data specific to the record type. |
+
+Section 3.2.1 of the RFC covers the answer section format in detail.
+
 # DNS Documentation
 
 * RFC 1035: https://datatracker.ietf.org/doc/html/rfc1035#section-4.1
@@ -85,30 +100,4 @@ header = struct.pack(
     self.nscount,
     self.arcount,
 )
-```
-
-
-
-Future
-```   
-class DNSAnswer:
-    def __init__(self, name, rtype, rclass, ttl, data):
-        self.name = name
-        self.type = rtype
-        self.rclass = rclass
-        self.ttl = ttl
-        self.data = data
-    def to_bytes(self):
-        name_bytes = b"".join(
-            struct.pack("!B", len(label)) + label.encode()
-            for label in self.name.split(".")
-        )
-        data_bytes = (
-            self.data if isinstance(self.data, bytes) else socket.inet_aton(self.data)
-        )
-        return (
-            name_bytes
-            + struct.pack("!HHIH", self.type, self.rclass, self.ttl, len(data_bytes))
-            + data_bytes
-        )
 ```

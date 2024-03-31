@@ -1,5 +1,7 @@
 import socket
-from .dnsmessage import DNSMessage, QClass, QType
+from .dnsmessage import DNSMessage
+from .dnsanswer import RClass, RType
+from .dnsquestion import QClass, QType
 
 class DNSServer:
     def __init__(self, ip, port):
@@ -21,6 +23,8 @@ class DNSServer:
                 # for now the header is initialized with the values we want
                 #Add question
                 response.addQuestion("codecrafters.io", QType.A, QClass.IN)
+                #Add answer
+                response.addAnswer("codecrafters.io", RType.A, RClass.IN, 60, "8.8.8.8")
                 
                 # Sending response
                 response_data = response.to_bytes()
