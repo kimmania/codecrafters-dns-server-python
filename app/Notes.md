@@ -30,6 +30,33 @@ The header section of a DNS message contains the following fields: (we've also i
 
 The header section is always **12 bytes** long. Integers are encoded in big-endian format.
 
+# Question section structure
+
+The question section contains a list of questions (usually just 1) that the sender wants to ask the receiver. This section is present in both query and reply packets.
+
+Each question has the following structure:
+* Name: A domain name, represented as a sequence of "labels" (more on this below)
+* Type: 2-byte int; the type of record (1 for an A record, 5 for a CNAME record etc., full list here)
+* Class: 2-byte int; usually set to 1 (full list here)
+
+Section 4.1.2 of the RFC covers the question section format in detail. Section 3.2 has more details on Type and class.
+
+## Domain name encoding
+Domain names in DNS packets are encoded as a sequence of labels.
+
+Labels are encoded as <length><content>, where <length> is a single byte that specifies the length of the label, and <content> is the actual content of the label. The sequence of labels is terminated by a null byte (\x00).
+
+For example:
+
+google.com is encoded as \x06google\x03com\x00 (in hex: 06 67 6f 6f 67 6c 65 03 63 6f 6d 00)
+\x06google is the first label
+\x06 is a single byte, which is the length of the label
+google is the content of the label
+\x03com is the second label
+\x03 is a single byte, which is the length of the label
+com is the content of the label
+\x00 is the null byte that terminates the domain name
+
 # DNS Documentation
 
 * RFC 1035: https://datatracker.ietf.org/doc/html/rfc1035#section-4.1
@@ -63,21 +90,7 @@ header = struct.pack(
 
 
 Future
-```
-class DNSQuestion:
-    def __init__(self, qname, qtype, qclass):
-        self.qname = qname
-        self.qtype = qtype
-        self.qclass = qclass
-    def to_bytes(self):
-        qname_bytes = b"".join(
-            struct.pack("!B", len(label)) + label.encode()
-            for label in self.qname.split(".")
-        )
-        return (
-            qname_bytes + struct.pack("!H", self.qtype) + struct.pack("!H", self.qclass)
-        )
-    
+```   
 class DNSAnswer:
     def __init__(self, name, rtype, rclass, ttl, data):
         self.name = name
