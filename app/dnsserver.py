@@ -1,15 +1,20 @@
+# pylint: disable=broad-exception-caught
+'''Class for the DNS Server'''
 import socket
+from io import BytesIO
 from .dnsmessage import DNSMessage
-from .dnsanswer import RClass, RType
-from .dnsquestion import QClass, QType
+from .dnsrecord import DNSRecord, RClass, RType
+from .dnsquestion import DNSQuestion, QClass, QType
 
 class DNSServer:
+    """Class representing the DNS Server"""
     def __init__(self, ip, port):
         self.port = port
         self.ip = ip
         self.udp_socket = None
 
     def run(self):
+        """Runner"""
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         udp_socket.bind((self.ip, self.port))
 
@@ -17,20 +22,26 @@ class DNSServer:
             try:
                 buf, source = udp_socket.recvfrom(512)
 
-                #print(buf)
-                # Creating a DNS message and setting header
+                print(buf)
+                reader = BytesIO(buf)
+                # Read a DNS message
+                request = DNSMessage()
+                request.from_bytes(reader)
+
+                # Prepare the response
                 response = DNSMessage()
-                # for now the header is initialized with the values we want
+                response.header.create_response(request.header)
+
                 #Add question
-                response.addQuestion("codecrafters.io", QType.A, QClass.IN)
+                response.add_question(DNSQuestion("codecrafters.io", QType.A, QClass.IN))
                 #Add answer
-                response.addAnswer("codecrafters.io", RType.A, RClass.IN, 60, "8.8.8.8")
-                
+                response.add_answer(DNSRecord().set_values("codecrafters.io", RType.A, RClass.IN, 60, "8.8.8.8"))
+
                 # Sending response
                 response_data = response.to_bytes()
                 print(f'response: {response_data}')
                 udp_socket.sendto(response_data, source)  
-                
+
             except Exception as e:
                 print(f"Error handling DNS message: {e}")
                 break

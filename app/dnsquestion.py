@@ -1,7 +1,10 @@
+# pylint: disable=broad-exception-caught
+'''Module for DNS Question section'''
 from enum import Enum
 import struct
 
 class QType(Enum):
+    """Enum of question types"""
     A = 1           # a host address
     NS = 2          # an authoritative name server
     MD = 3          # a mail destination (Obsolete - use MX)
@@ -24,6 +27,7 @@ class QType(Enum):
     ALL = 255       # A request for all records
 
 class QClass(Enum):
+    """Enum of question classes"""
     IN = 1      # the Internet
     CS = 2      # the CSNET class (Obsolete - used only for examples in some obsolete RFCs)
     CH = 3      # the CHAOS class
@@ -31,6 +35,7 @@ class QClass(Enum):
     ALL = 255   # any class
 
 class DNSQuestion():
+    """Class for DNS Message Question section"""
     qname: str
     qtype: QType
     qclass: QClass
@@ -40,7 +45,20 @@ class DNSQuestion():
         self.qtype = qtype
         self.qclass = qclass
 
+    def set_values(self, name: str, qtype: QType, qclass: QClass) -> "DNSQuestion":
+        '''set values'''
+        self.qname = name
+        self.qtype = qtype
+        self.qclass = qclass
+        return self
+
+    def from_bytes(self, value:bytes) -> "DNSQuestion":
+        """parses the value into the a question"""
+        #todo
+        return self
+
     def to_bytes(self) -> bytes:
+        """turns the question into bytes"""
         encoded = b""
         for part in self.qname.encode("ascii").split(b"."):
             encoded += bytes([len(part)]) + part

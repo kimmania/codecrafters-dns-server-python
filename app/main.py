@@ -1,3 +1,4 @@
+# pylint: disable=broad-exception-caught
 from .dnsserver import DNSServer
 
 def main():

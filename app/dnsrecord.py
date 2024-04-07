@@ -1,8 +1,12 @@
+# pylint: disable=broad-exception-caught
+'''Generic Resource Record Module'''
 from enum import Enum
 import socket
 import struct
+from .dnsutilities import DNSUtilities
 
 class RType(Enum):
+    """Enum of resource types"""
     A = 1           # a host address
     NS = 2          # an authoritative name server
     MD = 3          # a mail destination (Obsolete - use MX)
@@ -21,31 +25,46 @@ class RType(Enum):
     TXT = 16        # text strings
 
 class RClass(Enum):
+    """Enum of resource class"""
     IN = 1      # the Internet
     CS = 2      # the CSNET class (Obsolete - used only for examples in some obsolete RFCs)
     CH = 3      # the CHAOS class
     HS = 4      # Hesiod [Dyer 87]
 
-class DNSAnswer():
-    name: str
+class DNSRecord():
+    '''Generic Message Section class used for Answers, Authority, and Additional sections'''
+    rname: str
     rtype: RType
     rclass: RClass
     ttl: int = 0
+    rdata: str
 
-    def __init__(self, name: str, rtype: RType, rclass: RClass, ttl: int, data) -> None:
-        self.aname = name
+    def __init__(self) -> None:
+        pass
+
+    def set_values(self, rname, rtype: RType, rclass: RClass, ttl: int, rdata: str) -> "DNSRecord":
+        self.rname = rname
         self.rtype = rtype
         self.rclass = rclass
         self.ttl = ttl
-        self.data = data
-
+        self.rdata = rdata
+        return self
+    
     def to_bytes(self) -> bytes:
-        encoded = b""
-        for part in self.aname.encode("ascii").split(b"."):
-            encoded += bytes([len(part)]) + part
-        
-        data_bytes = (self.data if isinstance(self.data, bytes) else socket.inet_aton(self.data))
-        
-        encoded +=  b"\x00" + struct.pack("!HHIH", self.rtype.value, self.rclass.value, self.ttl, len(data_bytes)) + data_bytes  
-        
+        """turn into transmittable content"""
+        encoded = DNSUtilities.encode_dns_name(self.rname)
+
+        data_bytes = (self.rdata if isinstance(self.rdata, bytes) else socket.inet_aton(self.rdata))
+
+        encoded +=  struct.pack("!HHIH",
+                                self.rtype.value,
+                                self.rclass.value,
+                                self.ttl,
+                                len(data_bytes)) + data_bytes
+
         return encoded
+    
+    def from_bytes(self, value:bytes) -> "DNSRecord":
+        """parses the value into the a question"""
+        #todo
+        return self
