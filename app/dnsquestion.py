@@ -54,7 +54,7 @@ class DNSQuestion():
 
     def from_bytes(self, reader: BytesIO) -> "DNSQuestion":
         """parses the value into the a question"""
-        self.qname = DNSUtilities.decode_dns_name_simple(reader).decode("ascii")
+        self.qname = DNSUtilities.decode_name(reader).decode("ascii")
         data = reader.read(4)
         type_, class_ = struct.unpack("!HH", data)
         self.qtype = QType(type_)
