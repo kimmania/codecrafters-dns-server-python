@@ -1,24 +1,21 @@
 # pylint: disable=broad-exception-caught
-from dnsheader import DNSHeader
-#from dnsmessage import DNSMessage
+from io import BytesIO
+from dnsmessage import DNSMessage
 
-def testHeader():
-    header1 = DNSHeader(1234, True)
-    header1_bytes = header1.to_bytes()
-
-    header2 = DNSHeader().from_bytes(header1_bytes)
-    header2_bytes = header2.to_bytes()
-
-    assert header1_bytes == header2_bytes
 
 def sample():
     buf =  b'\x04\xd2\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00\x0ccodecrafters\x02io\x00\x00\x01\x00\x01'
+    reader = BytesIO(buf)
 
-    header_bytes = b'\x04\xd2\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00'
-    print(f'Before: {header_bytes}')
-    header = DNSHeader()
-    header.from_bytes(header_bytes)
-    print(f'After: {header.to_bytes()}')
+    request = DNSMessage()
+    request.from_bytes(reader)
+
+    response = DNSMessage()
+    response.create_response(request)
+
+     # Sending response
+    response_data = response.to_bytes()
+    print(f'response: {response_data}')
 
 # b'\x03\xac\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00\x0ccodecrafters\x02io\x00\x00\x01\x00\x01'
 # [stage-2] Querying `A` record for codecrafters.io.

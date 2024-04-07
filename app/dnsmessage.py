@@ -1,10 +1,9 @@
 # pylint: disable=broad-exception-caught
 """Module for the DNS Message"""
-import struct
 from io import BytesIO
 from .dnsheader import DNSHeader, RCode
 from .dnsquestion import DNSQuestion
-from .dnsrecord import DNSRecord
+from .dnsrecord import DNSRecord, RClass, RType
 
 class DNSMessage():
     """DNS Message"""
@@ -61,5 +60,21 @@ class DNSMessage():
         """from the bytes of an existing message, parse into a DNS Message"""
         try:
             self.header = DNSHeader().from_bytes(reader.read(12))
+            for i in range(0, self.header.qdcount):
+                question = DNSQuestion().from_bytes(reader)
+                self.add_question(question)
         except Exception:
             self.header.update_rcode(RCode.FORMAT_ERROR)
+
+    def create_response(self, other):
+        '''Create response from request'''
+        if not isinstance(other, DNSMessage):
+            raise ValueError("Can only copy from another DNSMessage instance")
+
+        self.header.create_response(other.header)
+        self.questions = []
+        for question in other.questions:
+            self.add_question(question)
+            # for now, we are directly adding as an answer
+            answer = DNSRecord().set_values(question.qname, RType(question.qtype.value), RClass(question.qclass.value), 60, "8.8.8.8")
+            self.add_answer(answer)

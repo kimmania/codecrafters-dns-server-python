@@ -30,17 +30,12 @@ class DNSServer:
 
                 # Prepare the response
                 response = DNSMessage()
-                response.header.create_response(request.header)
-
-                #Add question
-                response.add_question(DNSQuestion("codecrafters.io", QType.A, QClass.IN))
-                #Add answer
-                response.add_answer(DNSRecord().set_values("codecrafters.io", RType.A, RClass.IN, 60, "8.8.8.8"))
+                response.create_response(request)
 
                 # Sending response
                 response_data = response.to_bytes()
                 print(f'response: {response_data}')
-                udp_socket.sendto(response_data, source)  
+                udp_socket.sendto(response_data, source)
 
             except Exception as e:
                 print(f"Error handling DNS message: {e}")

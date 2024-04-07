@@ -2,6 +2,8 @@
 '''Module for DNS Question section'''
 from enum import Enum
 import struct
+from io import BytesIO
+from .dnsutilities import DNSUtilities
 
 class QType(Enum):
     """Enum of question types"""
@@ -40,10 +42,8 @@ class DNSQuestion():
     qtype: QType
     qclass: QClass
 
-    def __init__(self, name: str, qtype: QType, qclass: QClass) -> None:
-        self.qname = name
-        self.qtype = qtype
-        self.qclass = qclass
+    def __init__(self) -> None:
+        pass
 
     def set_values(self, name: str, qtype: QType, qclass: QClass) -> "DNSQuestion":
         '''set values'''
@@ -52,14 +52,16 @@ class DNSQuestion():
         self.qclass = qclass
         return self
 
-    def from_bytes(self, value:bytes) -> "DNSQuestion":
+    def from_bytes(self, reader: BytesIO) -> "DNSQuestion":
         """parses the value into the a question"""
-        #todo
+        self.qname = DNSUtilities.decode_dns_name_simple(reader).decode("ascii")
+        data = reader.read(4)
+        type_, class_ = struct.unpack("!HH", data)
+        self.qtype = QType(type_)
+        self.qclass = QClass(class_)
         return self
 
     def to_bytes(self) -> bytes:
         """turns the question into bytes"""
-        encoded = b""
-        for part in self.qname.encode("ascii").split(b"."):
-            encoded += bytes([len(part)]) + part
-        return encoded + b"\x00" + struct.pack("!H", self.qtype.value) + struct.pack("!H", self.qclass.value)
+        encoded = DNSUtilities.encode_dns_name(self.qname)
+        return encoded + struct.pack("!H", self.qtype.value) + struct.pack("!H", self.qclass.value)
