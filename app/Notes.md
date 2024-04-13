@@ -1,3 +1,16 @@
+# Summary
+This DNS project ultimately will forward each question to DNS server, accummulate the answers into a response back to the caller. It will only handle processing of A record types and does not do anythng with Authority or Additional sections.
+
+# Todo
+1. x Parse a record object
+2. x Create a more formal startup
+3. Create a local cache for lookig up relative to cached ttl
+4. Create a mechanism to call out DNS server for each question
+5. Create a mechanism to process through each question and request get answer
+6. Add answer to local cache
+
+
+
 # Messages
 
 All communications in the DNS protocol are carried in a single format called a "message". Each message consists of 5 sections: 
@@ -84,9 +97,8 @@ struck.pack can be used to transform the fields into a binary format suitable fo
 
 Here is an example showing how the 6 fields are pushed into a singular 16 bit value:
 ```
-header = struct.pack(
-    "!HHHHHH",
-    self.packid,
+header = self.packid + struct.pack(
+    "!HHHHH",
     (self.qr << 15)
     | (self.opcode << 11)
     | (self.aa << 10)
@@ -100,4 +112,31 @@ header = struct.pack(
     self.nscount,
     self.arcount,
 )
+```
+
+Example code to parse the flags into individual values (dnsheader.py, HeaderFlags.from_bytes):
+```
+value = int.from_bytes(value_bytes)
+self.qr = (value >> 15) & 0x01
+self.opcode = (value >> 11) & 0x0F
+self.aa = (value >> 10) & 0x01
+self.tc = (value >> 9) & 0x01
+self.rd = (value >> 8) & 0x01
+self.ra = (value >> 7) & 0x01
+self.z = (value >> 4) & 0x07
+rcode_value = value & 0x0F
+self.rcode = RCode(rcode_value)
+```
+
+To get the bytes for the DNSHeader (dnsheader.py, DNSHeader.from_bytes):
+```
+def from_bytes(self, header: bytes) -> "DNSHeader":
+    """from a bytes, populate the header values"""
+    #assume that input will be the full 12 bytes and only the 12 bytes
+    self.packid = header[:2]
+    self.flags.from_bytes(header[2:4])
+    self.qdcount = int.from_bytes(header[4:6])
+    self.ancount = int.from_bytes(header[6:8])
+    self.nscount = int.from_bytes(header[8:10])
+    self.arcount = int.from_bytes(header[10:12])
 ```

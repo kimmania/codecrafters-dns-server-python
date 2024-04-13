@@ -1,7 +1,9 @@
 # pylint: disable=broad-exception-caught
 """Module for DNSHeader"""
+import random
 import struct
 from enum import Enum
+from io import BytesIO
 
 class RCode(Enum):
     """Enum representing the different Response Codes"""
@@ -52,15 +54,14 @@ class HeaderFlags:
 
 class DNSHeader():
     """Class representing a DNS message header section"""
-    packid: int = 0     # 16 bits
+    packid: bytes = 0   # 16 bits
     flags: HeaderFlags  # Combined 16 bits
     qdcount: int = 0    # 16 bits
     ancount: int = 0    # 16 bits
     nscount: int = 0    # 16 bits
     arcount: int = 0    # 16 bits
 
-    def __init__(self, packid:int = 0, is_response: bool = True) -> None:
-        self.packid = packid
+    def __init__(self, is_response: bool = True) -> None:
         self.flags = HeaderFlags(is_response)
 
     # pull the important values from a request header and use in a new response header
@@ -77,12 +78,22 @@ class DNSHeader():
         if self.flags.opcode != 0:
             self.flags.update_rcode(RCode.NOT_IMPLEMENTED) # set to not implemented
 
+    def create_question(self, other):
+        '''Set the flags we need to pass along'''
+        if not isinstance(other, DNSHeader):
+            raise ValueError("Can only copy from another DNSHeader instance")
+        
+        self.flags.qr = 0
+        self.flags.opcode = other.flags.opcode
+        self.flags.rd = other.flags.rd
+
     # create an instance from bytes
-    def from_bytes(self, header: bytes) -> "DNSHeader":
+    def from_bytes(self, reader: BytesIO) -> "DNSHeader":
         """from a bytes, populate the header values"""
         try:
+            header = reader.read(12)
             #assume that input will be the full 12 bytes and only the 12 bytes
-            self.packid = int.from_bytes(header[:2])
+            self.packid = header[:2]
             self.flags.from_bytes(header[2:4])
             self.qdcount = int.from_bytes(header[4:6])
             self.ancount = int.from_bytes(header[6:8])
@@ -118,9 +129,11 @@ class DNSHeader():
     # formatting for network communication
     def to_bytes(self) -> bytes:
         """format into bytes for transmission"""
-        header = struct.pack(
-            "!HHHHHH",
-            self.packid,
+        if self.packid == 0:
+            self.packid = struct.pack("!H", random.randint(1, 65535))
+
+        header = self.packid + struct.pack(
+            "!HHHHH",
             self.flags.to_byte(),
             self.qdcount,
             self.ancount,

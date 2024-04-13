@@ -3,7 +3,7 @@
 from io import BytesIO
 from .dnsheader import DNSHeader, RCode
 from .dnsquestion import DNSQuestion
-from .dnsrecord import DNSRecord, RClass, RType
+from .dnsrecord import DNSRecord
 
 class DNSMessage():
     """DNS Message"""
@@ -59,22 +59,36 @@ class DNSMessage():
     def from_bytes(self, reader:BytesIO) -> "DNSMessage":
         """from the bytes of an existing message, parse into a DNS Message"""
         try:
-            self.header = DNSHeader().from_bytes(reader.read(12))
-            for i in range(0, self.header.qdcount):
+            self.header = DNSHeader().from_bytes(reader)
+            for _ in range(0, self.header.qdcount):
                 question = DNSQuestion().from_bytes(reader)
                 self.add_question(question)
+            for _ in range(0, self.header.ancount):
+                answer = DNSRecord().from_bytes(reader)
+                self.add_answer(answer)
+            for _ in range(0, self.header.nscount):
+                authority = DNSRecord().from_bytes(reader)
+                self.add_answer(authority)
+            for _ in range(0, self.header.arcount):
+                arecord = DNSRecord().from_bytes(reader)
+                self.add_answer(arecord)
         except Exception:
             self.header.update_rcode(RCode.FORMAT_ERROR)
+        return self
 
-    def create_response(self, other):
-        '''Create response from request'''
+    def create_question(self, header: DNSHeader, question: DNSQuestion) -> bytes:
+        '''Creat a message out of Question'''
+        self.header = DNSHeader(False)
+        # need to set some flags to forward
+        self.header.create_question(header)
+        self.add_question(question)
+        return self.to_bytes()
+
+    def prepare_response(self, other):
+        '''Prepare response from request'''
         if not isinstance(other, DNSMessage):
             raise ValueError("Can only copy from another DNSMessage instance")
 
         self.header.create_response(other.header)
         self.questions = []
-        for question in other.questions:
-            self.add_question(question)
-            # for now, we are directly adding as an answer
-            answer = DNSRecord().set_values(question.qname, RType(question.qtype.value), RClass(question.qclass.value), 60, "8.8.8.8")
-            self.add_answer(answer)
+        self.answers = []

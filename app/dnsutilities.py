@@ -21,7 +21,8 @@ class DNSUtilities:
         return b".".join(parts)
 
     # RFC covering the compression algorithm: https://www.rfc-editor.org/rfc/rfc1035#section-4.1.4
-    # Code guiding me through reading the compression: https://implement-dns.wizardzines.com/book/part_2#implement-dns-compression
+    # Code guiding me through reading the compression: 
+    # https://implement-dns.wizardzines.com/book/part_2#implement-dns-compression
     @staticmethod
     def decode_name(reader):
         '''Decode the name accounting for compression'''
@@ -30,8 +31,8 @@ class DNSUtilities:
             if length & 0b1100_0000:
                 parts.append(DNSUtilities.decode_compressed_name(length, reader))
                 break
-            else:
-                parts.append(reader.read(length))
+
+            parts.append(reader.read(length))
         return b".".join(parts)
 
     @staticmethod

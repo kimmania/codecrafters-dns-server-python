@@ -1,6 +1,7 @@
 # pylint: disable=broad-exception-caught
 '''Generic Resource Record Module'''
 from enum import Enum
+from io import BytesIO
 import socket
 import struct
 from .dnsutilities import DNSUtilities
@@ -43,19 +44,20 @@ class DNSRecord():
         pass
 
     def set_values(self, rname, rtype: RType, rclass: RClass, ttl: int, rdata: str) -> "DNSRecord":
+        '''Set the values for the record'''
         self.rname = rname
         self.rtype = rtype
         self.rclass = rclass
         self.ttl = ttl
         self.rdata = rdata
         return self
-    
+
     def to_bytes(self) -> bytes:
-        """turn into transmittable content"""
+        '''turn into transmittable content'''
         encoded = DNSUtilities.encode_dns_name(self.rname)
 
         data_bytes = (self.rdata if isinstance(self.rdata, bytes) else socket.inet_aton(self.rdata))
-
+        # todo: this is only structured relative to A record type, should handle other record types
         encoded +=  struct.pack("!HHIH",
                                 self.rtype.value,
                                 self.rclass.value,
@@ -63,8 +65,19 @@ class DNSRecord():
                                 len(data_bytes)) + data_bytes
 
         return encoded
-    
-    def from_bytes(self, value:bytes) -> "DNSRecord":
-        """parses the value into the a question"""
-        #todo
+
+    def from_bytes(self, reader: BytesIO) -> "DNSRecord":
+        '''parses the value into the a question'''
+        self.rname = DNSUtilities.decode_name(reader).decode("ascii")
+        data = reader.read(10)
+        type_, class_, ttl, length = struct.unpack("!HHIH", data)
+        self.rtype = RType(type_)
+        self.rclass = RClass(class_)
+        self.ttl = ttl
+
+        # need to parse the length of data and then the data
+        ip = reader.read(length)
+        # todo: this is only structured relative to A record type, should handle other record types
+        self.rdata = socket.inet_ntoa(ip)
+
         return self
